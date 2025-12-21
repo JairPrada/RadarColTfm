@@ -20,6 +20,7 @@ import { motion } from "framer-motion";
 import { Brain, Shield, TrendingUp, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { GlowButton } from "@/components/ui/GlowButton";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 /**
  * Variants para animaciones orquestadas
@@ -79,6 +80,11 @@ const features = [
 export function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Theme Toggle - Fixed position */}
+      <div className="absolute top-8 right-8 z-50">
+        <ThemeToggle />
+      </div>
+      
       {/* Grid Background Cyberpunk */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#334155_1px,transparent_1px),linear-gradient(to_bottom,#334155_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)] opacity-20" />
       

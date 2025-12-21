@@ -1,11 +1,47 @@
 @import "tailwindcss";
 
 /**
- * RadarCol - Paleta de Colores Cyberpunk/Data Science
- * Dark Mode por defecto con acentos neón y sistema de alertas
+ * RadarCol - Sistema de Diseño Dual Theme
+ * Light Mode: "Clean Tech Lab" - Dashboard analítico profesional
+ * Dark Mode: "Cyberpunk Data Center" - Estética neón con fondos oscuros
  */
 
 :root {
+  /* === LIGHT MODE (por defecto) === */
+  
+  /* Fondos claros base */
+  --background: #f8fafc; /* slate-50 - Fondo principal */
+  --background-light: #ffffff; /* white - Cards y elementos elevados */
+  --background-card: #ffffff; /* white - Cards y paneles */
+  --foreground: #0f172a; /* slate-900 - Texto principal */
+  --foreground-muted: #475569; /* slate-600 - Texto secundario */
+  
+  /* Acentos profesionales con contraste adecuado */
+  --accent-cyan: #0891b2; /* cyan-600 - Principal */
+  --accent-cyan-glow: #06b6d4; /* cyan-500 - Hover/Activo */
+  --accent-violet: #7c3aed; /* violet-600 - Secundario */
+  --accent-violet-glow: #8b5cf6; /* violet-500 - Hover/Activo */
+  
+  /* Sistema de Semáforo - Fondos pastel con textos oscuros */
+  --alert-high: #991b1b; /* red-800 - Texto alto riesgo */
+  --alert-high-bg: #fee2e2; /* red-100 - Fondo alto riesgo */
+  --alert-medium: #92400e; /* amber-800 - Texto medio riesgo */
+  --alert-medium-bg: #fef3c7; /* amber-100 - Fondo medio riesgo */
+  --alert-low: #065f46; /* emerald-800 - Texto bajo riesgo */
+  --alert-low-bg: #d1fae5; /* emerald-100 - Fondo bajo riesgo */
+  
+  /* Bordes y divisores sutiles */
+  --border-color: #e2e8f0; /* slate-200 - Bordes principales */
+  --border-accent: #cbd5e1; /* slate-300 - Bordes enfatizados */
+  
+  /* Efectos glow sutiles para light mode */
+  --glow-cyan: rgba(8, 145, 178, 0.15);
+  --glow-violet: rgba(124, 58, 237, 0.15);
+}
+
+.dark {
+  /* === DARK MODE (Cyberpunk) === */
+  
   /* Fondos oscuros base */
   --background: #0f172a; /* slate-900 */
   --background-light: #1e293b; /* slate-800 */
@@ -13,13 +49,13 @@
   --foreground: #f1f5f9; /* slate-100 */
   --foreground-muted: #94a3b8; /* slate-400 */
   
-  /* Acentos Neón */
+  /* Acentos Neón intensos */
   --accent-cyan: #06b6d4; /* cyan-500 */
   --accent-cyan-glow: #22d3ee; /* cyan-400 */
   --accent-violet: #8b5cf6; /* violet-500 */
   --accent-violet-glow: #a78bfa; /* violet-400 */
   
-  /* Sistema de Semáforo (Niveles de Alerta) */
+  /* Sistema de Semáforo - Textos brillantes con fondos oscuros */
   --alert-high: #ef4444; /* red-500 - Alto riesgo */
   --alert-high-bg: #991b1b; /* red-800 */
   --alert-medium: #f59e0b; /* amber-500 - Medio riesgo */
@@ -27,9 +63,13 @@
   --alert-low: #10b981; /* emerald-500 - Bajo riesgo */
   --alert-low-bg: #065f46; /* emerald-800 */
   
-  /* Bordes y divisores */
+  /* Bordes oscuros */
   --border-color: #334155; /* slate-700 */
   --border-accent: #475569; /* slate-600 */
+  
+  /* Efectos glow intensos para dark mode */
+  --glow-cyan: rgba(6, 182, 212, 0.5);
+  --glow-violet: rgba(139, 92, 246, 0.5);
 }
 
 @theme inline {
@@ -68,13 +108,13 @@ body {
   overflow-x: hidden;
 }
 
-/* Efectos de Glow para elementos neón */
+/* Efectos de Glow adaptativos por tema */
 .glow-cyan {
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+  box-shadow: 0 0 20px var(--glow-cyan);
 }
 
 .glow-violet {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 20px var(--glow-violet);
 }
 
 /* Animación de entrada suave */

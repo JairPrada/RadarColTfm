@@ -14,3 +14,4 @@ export { MainLayout } from "./MainLayout";
 export { GlowButton } from "./GlowButton";
 export { Badge } from "./Badge";
 export { ParticlesBackground } from "./ParticlesBackground";
+export { ThemeToggle } from "./ThemeToggle";

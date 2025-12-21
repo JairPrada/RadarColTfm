@@ -11,6 +11,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { Home, LayoutDashboard } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -53,7 +54,7 @@ export function MainLayout({
               </Link>
               
               {/* Navegación básica */}
-              <nav className="flex items-center gap-6">
+              <nav className="flex items-center gap-4">
                 <Link
                   href="/"
                   className="flex items-center gap-2 text-sm text-foreground-muted hover:text-accent-cyan transition-colors"
@@ -68,6 +69,11 @@ export function MainLayout({
                   <LayoutDashboard className="w-4 h-4" />
                   <span className="hidden sm:inline">Dashboard</span>
                 </Link>
+                
+                {/* Toggle de tema */}
+                <div className="ml-2 pl-4 border-l border-border">
+                  <ThemeToggle />
+                </div>
               </nav>
             </div>
           </div>
