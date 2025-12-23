@@ -27,7 +27,7 @@ import { useEffect, useState } from "react";
  */
 const LOTTIE_ANIMATIONS = {
   database:
-    "https://lottie.host/288981f5-e278-4dae-8285-c594120a725e/zkXFlCcfiN.json", // Server/Database
+    "https://lottie.host/ebbb66c9-34e7-4c20-9874-fa4c870869b0/Kreg1wzBWu.json", // Server/Database
   processing:
     "https://lottie.host/5c988a28-88fc-438b-9498-dc208654a613/lotC1GojYm.json", // AI/Analysis
   brain:
