@@ -15,3 +15,5 @@ export { GlowButton } from "./GlowButton";
 export { Badge } from "./Badge";
 export { ParticlesBackground } from "./ParticlesBackground";
 export { ThemeToggle } from "./ThemeToggle";
+export { AnimatedNumber } from "./AnimatedNumber";
+export { AnimatedProgressBar } from "./AnimatedProgressBar";
