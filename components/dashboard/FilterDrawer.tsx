@@ -27,7 +27,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Filter, RotateCcw } from "lucide-react";
 import { ContractFilters } from "./ContractFilters";
@@ -37,7 +37,7 @@ interface FilterDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   filters: FilterTypes;
-  onFiltersChange: (filters: FilterTypes) => void;
+  onApplyFilters: (filters: FilterTypes) => void;
   isLoading?: boolean;
   activeFiltersCount?: number;
 }
@@ -49,10 +49,23 @@ export function FilterDrawer({
   isOpen,
   onClose,
   filters,
-  onFiltersChange,
+  onApplyFilters,
   isLoading = false,
   activeFiltersCount = 0,
 }: FilterDrawerProps) {
+  // Estado local para filtros temporales (antes de aplicar)
+  const [tempFilters, setTempFilters] = useState<FilterTypes>(filters);
+  // Track si el drawer estaba abierto
+  const [wasOpen, setWasOpen] = useState(false);
+
+  // Sincronizar estado local cuando se abre el drawer
+  if (isOpen && !wasOpen) {
+    setTempFilters(filters);
+    setWasOpen(true);
+  } else if (!isOpen && wasOpen) {
+    setWasOpen(false);
+  }
+
   // Gestión de tecla Escape
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -79,11 +92,35 @@ export function FilterDrawer({
   }, [isOpen]);
 
   /**
-   * Resetea todos los filtros y cierra el drawer
+   * Resetea filtros temporales y cierra el drawer
    */
   const handleResetAndClose = () => {
-    onFiltersChange({});
+    setTempFilters({});
+    onApplyFilters({});
     onClose();
+  };
+
+  /**
+   * Aplica los filtros temporales y cierra el drawer
+   */
+  const handleApplyFilters = () => {
+    onApplyFilters(tempFilters);
+    onClose();
+  };
+
+  /**
+   * Limpia filtros temporales (sin aplicar)
+   */
+  const handleClearTempFilters = () => {
+    setTempFilters({});
+  };
+
+  /**
+   * Maneja el submit del formulario (Enter key)
+   */
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleApplyFilters();
   };
 
   return (
@@ -107,8 +144,9 @@ export function FilterDrawer({
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-border bg-background-card">
+            <form onSubmit={handleFormSubmit} className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-border bg-background-card">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-accent-cyan/10 rounded-lg">
                   <Filter className="w-5 h-5 text-accent-cyan" />
@@ -154,8 +192,8 @@ export function FilterDrawer({
             {/* Content */}
             <div className="flex-1 overflow-y-auto">
               <ContractFilters
-                filters={filters}
-                onFiltersChange={onFiltersChange}
+                filters={tempFilters}
+                onFiltersChange={setTempFilters}
                 isLoading={isLoading}
                 className="border-none bg-transparent p-6"
                 hideHeader={true}
@@ -166,7 +204,7 @@ export function FilterDrawer({
             <div className="p-6 border-t border-border bg-background-card">
               <div className="flex gap-3">
                 <motion.button
-                  onClick={onClose}
+                  type="submit"
                   className="flex-1 px-4 py-2 bg-accent-cyan text-white rounded-lg hover:bg-accent-cyan-glow transition-colors font-medium"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -176,7 +214,8 @@ export function FilterDrawer({
                 </motion.button>
                 
                 <motion.button
-                  onClick={() => onFiltersChange({})}
+                  type="button"
+                  onClick={handleClearTempFilters}
                   className="px-4 py-2 bg-background-light border border-border text-foreground rounded-lg hover:bg-background-card transition-colors"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -186,6 +225,7 @@ export function FilterDrawer({
                 </motion.button>
               </div>
             </div>
+            </form>
           </motion.div>
         </>
       )}

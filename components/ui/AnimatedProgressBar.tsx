@@ -16,8 +16,8 @@ import { motion } from "framer-motion";
 interface AnimatedProgressBarProps {
   /** Valor del progreso (0-100) */
   value: number;
-  /** Color de la barra */
-  color?: "cyan" | "violet" | "red" | "green";
+  /** Color de la barra (si se usa modo dinámico se ignora) */
+  color?: "cyan" | "violet" | "red" | "green" | "yellow";
   /** Altura de la barra */
   height?: "sm" | "md" | "lg";
   /** Mostrar etiqueta con porcentaje */
@@ -26,6 +26,8 @@ interface AnimatedProgressBarProps {
   duration?: number;
   /** Retraso antes de la animación */
   delay?: number;
+  /** Usar colores dinámicos basados en el porcentaje (0-30% verde, 30-70% amarillo, 70-100% rojo) */
+  dynamic?: boolean;
   /** Clases CSS adicionales */
   className?: string;
 }
@@ -34,20 +36,41 @@ const colorClasses = {
   cyan: {
     bg: "bg-accent-cyan",
     text: "text-accent-cyan",
+    bgVar: "bg-accent-cyan",
   },
   violet: {
     bg: "bg-accent-violet",
     text: "text-accent-violet",
+    bgVar: "bg-accent-violet",
   },
   red: {
-    bg: "bg-red-500",
-    text: "text-red-500",
+    bg: "bg-[var(--progress-red)]",
+    text: "text-[var(--progress-red)]",
+    bgVar: "bg-[var(--progress-red)]",
   },
   green: {
-    bg: "bg-green-500",
-    text: "text-green-500",
+    bg: "bg-[var(--progress-green)]",
+    text: "text-[var(--progress-green)]",
+    bgVar: "bg-[var(--progress-green)]",
+  },
+  yellow: {
+    bg: "bg-[var(--alert-medium)]",
+    text: "text-[var(--alert-medium)]",
+    bgVar: "bg-[var(--alert-medium)]",
   },
 };
+
+/**
+ * Determina el color dinámico basado en el porcentaje
+ * 0-30%: Verde (Bajo)
+ * 30-70%: Amarillo (Medio)
+ * 70-100%: Rojo (Alto)
+ */
+function getDynamicColor(value: number): "green" | "yellow" | "red" {
+  if (value <= 30) return "green";
+  if (value <= 70) return "yellow";
+  return "red";
+}
 
 const heightClasses = {
   sm: "h-2",
@@ -65,10 +88,14 @@ export function AnimatedProgressBar({
   showLabel = false,
   duration = 1.5,
   delay = 0,
+  dynamic = false,
   className = "",
 }: AnimatedProgressBarProps) {
   const normalizedValue = Math.min(Math.max(value, 0), 100);
-  const colors = colorClasses[color];
+  
+  // Determinar color: si es dinámico, calcular basado en valor, sino usar el prop
+  const finalColor = dynamic ? getDynamicColor(normalizedValue) : color;
+  const colors = colorClasses[finalColor];
   const heightClass = heightClasses[height];
 
   return (
@@ -87,7 +114,7 @@ export function AnimatedProgressBar({
         </div>
       )}
       
-      <div className={`w-full ${heightClass} bg-background-light rounded-full overflow-hidden`}>
+      <div className={`w-full ${heightClass} bg-[var(--progress-bg)] rounded-full overflow-hidden`}>
         <motion.div
           className={`${heightClass} ${colors.bg} rounded-full`}
           initial={{ width: 0 }}

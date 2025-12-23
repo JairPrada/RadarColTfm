@@ -120,10 +120,11 @@ function buildQueryParams(filters?: ContractFilters, limit?: number): string {
  * Obtiene contratos desde la API con filtros opcionales
  * 
  * @param filters - Filtros opcionales para la consulta
+ * @param limit - Límite de contratos a obtener (opcional, por defecto sin límite)
  * @returns Promise con la respuesta completa de la API y contratos transformados
  * @throws Error si la llamada al API falla
  */
-export async function fetchContracts(filters?: ContractFilters, limit: number = 100): Promise<{
+export async function fetchContracts(filters?: ContractFilters, limit?: number): Promise<{
   apiResponse: ContractsApiResponse;
   contracts: Contract[];
 }> {
@@ -226,6 +227,16 @@ export function paginateData<T>(
   const startIndex = (page - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedData = data.slice(startIndex, endIndex);
+
+  console.log('📄 paginateData llamado:', {
+    totalItems,
+    page,
+    pageSize,
+    totalPages,
+    startIndex,
+    endIndex,
+    resultLength: paginatedData.length
+  });
 
   return {
     data: paginatedData,

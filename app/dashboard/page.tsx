@@ -33,6 +33,8 @@ import {
   BarChart3,
   Percent,
   Filter,
+  RefreshCw,
+  Home,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Contract, ContractsApiResponse } from "@/types/contract";
@@ -61,23 +63,29 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         console.log('Iniciando carga de contratos con filtros:', filters);
-        const { contracts, apiResponse } = await fetchContracts(filters, 100);
+        const { contracts, apiResponse } = await fetchContracts(filters);
         console.log('Contratos recibidos de API:', contracts.length);
         
         setAllContracts(contracts);
         setApiResponse(apiResponse);
         
         // Aplicar paginación inmediatamente después de cargar
+        const currentPageSize = pagination.pageSize;
         const initialPagination = {
           page: 1,
-          pageSize: pagination.pageSize,
+          pageSize: currentPageSize,
           totalItems: contracts.length,
         };
         setPagination(initialPagination);
         
         // Calcular resultado paginado inmediatamente
-        const result = paginateData(contracts, 1, pagination.pageSize);
-        console.log('Paginación inicial aplicada:', result);
+        const result = paginateData(contracts, 1, currentPageSize);
+        console.log('Paginación inicial aplicada:', {
+          totalContracts: contracts.length,
+          pageSize: currentPageSize,
+          totalPages: result.totalPages,
+          dataInPage: result.data.length
+        });
         setPaginatedResult(result);
         
       } catch (error) {
@@ -91,41 +99,68 @@ export default function DashboardPage() {
     loadContracts();
   }, [filters]); // Solo depende de filtros
 
-  // Efecto para cambios de página o tamaño de página (no carga inicial)
-  const handlePaginationUpdate = (newPage: number, newPageSize: number) => {
-    if (allContracts.length > 0) {
-      const result = paginateData(allContracts, newPage, newPageSize);
-      console.log('Actualizando paginación:', { newPage, newPageSize, dataLength: result.data.length });
-      setPaginatedResult(result);
-    }
-  };
-
   /**
-   * Maneja cambios en los filtros
+   * Maneja cambios en los filtros (aplicados desde el drawer)
    */
-  const handleFiltersChange = (newFilters: FilterTypes) => {
-    console.log('Filtros cambiados:', newFilters);
+  const handleApplyFilters = (newFilters: FilterTypes) => {
+    console.log('Aplicando filtros:', newFilters);
     setFilters(newFilters);
   };
 
   /**
    * Maneja cambios de página
    */
-  const handlePageChange = (page: number) => {
-    setPagination(prev => ({ ...prev, page }));
-    handlePaginationUpdate(page, pagination.pageSize);
+  const handlePageChange = (newPage: number) => {
+    console.log('Cambiando a página:', newPage, '| Total contratos:', allContracts.length);
+    
+    if (allContracts.length === 0) {
+      console.warn('No hay contratos para paginar');
+      return;
+    }
+    
+    // Capturar pageSize actual ANTES de setState para evitar stale closure
+    const currentPageSize = pagination.pageSize;
+    
+    setPagination(prev => ({ ...prev, page: newPage }));
+    
+    // Aplicar paginación con valores explícitos
+    const result = paginateData(allContracts, newPage, currentPageSize);
+    console.log('Paginación aplicada:', { 
+      page: newPage, 
+      pageSize: currentPageSize, 
+      totalPages: result.totalPages,
+      dataLength: result.data.length 
+    });
+    setPaginatedResult(result);
   };
 
   /**
    * Maneja cambios de tamaño de página
    */
-  const handlePageSizeChange = (pageSize: number) => {
+  const handlePageSizeChange = (newPageSize: number) => {
+    console.log('Cambiando tamaño de página:', newPageSize, '| Total contratos:', allContracts.length);
+    
+    if (allContracts.length === 0) {
+      console.warn('No hay contratos para paginar');
+      return;
+    }
+    
+    // Resetear a página 1 cuando cambia el tamaño
     setPagination(prev => ({ 
       ...prev, 
-      pageSize, 
+      pageSize: newPageSize, 
       page: 1
     }));
-    handlePaginationUpdate(1, pageSize);
+    
+    // Aplicar paginación con valores explícitos
+    const result = paginateData(allContracts, 1, newPageSize);
+    console.log('Paginación aplicada:', { 
+      page: 1, 
+      pageSize: newPageSize, 
+      totalPages: result.totalPages,
+      dataLength: result.data.length 
+    });
+    setPaginatedResult(result);
   };
 
   /**
@@ -171,63 +206,30 @@ export default function DashboardPage() {
             </motion.div>
 
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              ⚠️ API No Disponible
+              No se pudieron cargar los contratos
             </h2>
 
-            <div className="bg-background-card border border-border rounded-xl p-6 text-left mb-6">
-              <pre className="text-sm text-foreground-muted whitespace-pre-wrap font-mono bg-background-light p-4 rounded-lg mb-4">
-                {error || "Error desconocido"}
-              </pre>
-
-              <div className="space-y-3 text-sm text-foreground-muted">
-                <p className="font-semibold text-accent-cyan">
-                  🔧 Pasos para solucionar:
-                </p>
-                <ol className="list-decimal list-inside space-y-2">
-                  <li>Verifica que el servidor API esté ejecutándose</li>
-                  <li>
-                    Confirma que use el puerto{" "}
-                    <code className="bg-background-light px-1 rounded">
-                      8000
-                    </code>
-                  </li>
-                  <li>
-                    Prueba la URL:{" "}
-                    <a
-                      href="http://localhost:8000/contratos"
-                      target="_blank"
-                      className="text-accent-cyan hover:text-accent-cyan-glow underline"
-                    >
-                      http://localhost:8000/contratos
-                    </a>
-                  </li>
-                </ol>
-              </div>
-            </div>
+            <p className="text-foreground-muted mb-8 max-w-md mx-auto">
+              No se pudo conectar con el servidor. Por favor, intenta nuevamente.
+            </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => window.location.reload()}
-                className="px-6 py-3 bg-accent-cyan text-white rounded-lg hover:bg-accent-cyan-glow transition-colors font-medium"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-accent-cyan text-white rounded-lg hover:bg-accent-cyan-glow transition-colors font-medium"
               >
-                🔄 Reintentar
+                <RefreshCw className="w-5 h-5" />
+                Reintentar
               </button>
 
               <a
                 href="/"
-                className="px-6 py-3 bg-background-light border border-border text-foreground rounded-lg hover:bg-background-card transition-colors font-medium"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-background-light border border-border text-foreground rounded-lg hover:bg-background-card transition-colors font-medium"
               >
-                🏠 Ir al Inicio
+                <Home className="w-5 h-5" />
+                Ir al Inicio
               </a>
             </div>
-
-            <p className="text-xs text-foreground-muted mt-8">
-              💡 Tip: Ejecuta{" "}
-              <code className="bg-background-light px-1 rounded">
-                .\scripts\check-api.ps1
-              </code>{" "}
-              para verificar el estado del API
-            </p>
           </div>
         </div>
       </MainLayout>
@@ -300,7 +302,7 @@ export default function DashboardPage() {
                 value={stats.totalContratosAnalizados}
                 duration={2}
                 delay={0.2}
-                className="text-2xl md:text-3xl font-bold font-mono text-foreground"
+                className="text-2xl md:text-3xl font-bold font-mono text-accent-cyan"
               />
             </div>
             <div className="text-sm text-foreground-muted">
@@ -324,19 +326,9 @@ export default function DashboardPage() {
                 className="text-2xl md:text-3xl font-bold font-mono text-alert-high"
               />
             </div>
-            <div className="text-sm text-foreground-muted mb-3">
+            <div className="text-sm text-foreground-muted">
               Contratos de Alto Riesgo
             </div>
-            <AnimatedProgressBar
-              value={
-                (stats.contratosAltoRiesgo / stats.totalContratosAnalizados) *
-                100
-              }
-              color="red"
-              height="sm"
-              duration={2}
-              delay={0.6}
-            />
           </motion.div>
 
           {/* Monto Total */}
@@ -369,7 +361,7 @@ export default function DashboardPage() {
             transition={{ duration: 0.5, delay: 0.7 }}
           >
             <div className="flex items-center justify-between mb-4">
-              <Percent className="w-8 h-8 text-accent-cyan" />
+              <Percent className="w-8 h-8 text-alert-high" />
               <AnimatedNumber
                 value={
                   (stats.contratosAltoRiesgo / stats.totalContratosAnalizados) *
@@ -378,22 +370,12 @@ export default function DashboardPage() {
                 duration={2.5}
                 delay={0.8}
                 formatter={(val) => `${val.toFixed(1)}%`}
-                className="text-2xl md:text-3xl font-bold font-mono text-accent-cyan"
+                className="text-2xl md:text-3xl font-bold font-mono text-alert-high"
               />
             </div>
-            <div className="text-sm text-foreground-muted mb-3">
+            <div className="text-sm text-foreground-muted">
               Porcentaje Alto Riesgo
             </div>
-            <AnimatedProgressBar
-              value={
-                (stats.contratosAltoRiesgo / stats.totalContratosAnalizados) *
-                100
-              }
-              color="cyan"
-              height="sm"
-              duration={2.5}
-              delay={1.0}
-            />
           </motion.div>
         </motion.div>
 
@@ -457,9 +439,10 @@ export default function DashboardPage() {
         {/* Table */}
         <motion.div
           className="bg-background-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-500 mb-6"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.6 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          key={`table-${pagination.page}`}
         >
           <ContractTable contracts={currentContracts} />
         </motion.div>
@@ -467,9 +450,9 @@ export default function DashboardPage() {
         {/* Paginación */}
         {paginatedResult && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1.8 }}
+            transition={{ duration: 0.3, delay: 0.4, ease: "easeOut" }}
           >
             <TablePagination
               pagination={paginatedResult.pagination}
@@ -487,7 +470,7 @@ export default function DashboardPage() {
           isOpen={isFilterDrawerOpen}
           onClose={() => setIsFilterDrawerOpen(false)}
           filters={filters}
-          onFiltersChange={handleFiltersChange}
+          onApplyFilters={handleApplyFilters}
           isLoading={loading}
           activeFiltersCount={activeFiltersCount}
         />

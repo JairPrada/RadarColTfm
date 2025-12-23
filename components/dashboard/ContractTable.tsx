@@ -39,7 +39,7 @@ const formatCurrency = (amount: number): string => {
 };
 
 /**
- * Formatea una fecha a formato corto español
+ * Formatea una fecha a formato corto español (dd/mm/yyyy)
  */
 const formatDate = (date: Date | null): string => {
   if (!date) {
@@ -47,8 +47,8 @@ const formatDate = (date: Date | null): string => {
   }
   return new Intl.DateTimeFormat("es-CO", {
     year: "numeric",
-    month: "short",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   }).format(date);
 };
 
@@ -63,23 +63,25 @@ const riskLevelText = {
 
 /**
  * Variantes de animación para la tabla
+ * Optimizadas para cambio rápido de página
  */
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.05,
+      staggerChildren: 0.02,
+      delayChildren: 0,
     },
   },
 };
 
 const rowVariants = {
-  hidden: { opacity: 0, x: -20 },
+  hidden: { opacity: 0, x: -10 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.3 },
+    transition: { duration: 0.2, ease: "easeOut" },
   },
 };
 
@@ -110,10 +112,10 @@ export function ContractTable({ contracts }: ContractTableProps) {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">
-            No se encontraron contratos
+            No se encontraron resultados
           </h3>
           <p className="text-sm text-foreground-muted">
-            Intenta ajustar los filtros o verificar que el API esté devolviendo datos
+            Intenta ajustar los filtros de búsqueda
           </p>
         </div>
       </div>
@@ -184,9 +186,9 @@ export function ContractTable({ contracts }: ContractTableProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 text-foreground-muted text-sm">
-                    <Calendar className="w-4 h-4" />
-                    {formatDate(contract.fecha)}
+                  <div className="flex items-center gap-2 text-foreground-muted text-sm whitespace-nowrap">
+                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                    <span className="font-mono">{formatDate(contract.fecha)}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4">
