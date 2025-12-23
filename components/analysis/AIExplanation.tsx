@@ -1,15 +1,14 @@
 /**
- * AIExplanation - Explicación textual generada por IA
+ * AIExplanation - Resumen ejecutivo del análisis de IA
  * 
  * Patrón de diseño: Presentation Component
- * - Muestra el análisis textual del modelo de IA
- * - Estructura clara: resumen → factores → recomendaciones
- * - Diseño legible con iconos y jerarquía visual
+ * - Muestra el resumen ejecutivo y metadata del análisis
+ * - Los factores y recomendaciones ahora están en accordions separados
  * 
  * @component
  */
 
-import { Brain, AlertTriangle, CheckCircle, Lightbulb } from "lucide-react";
+import { Brain, AlertTriangle } from "lucide-react";
 import { ContractAnalysis } from "@/types/analysis";
 
 interface AIExplanationProps {
@@ -18,7 +17,7 @@ interface AIExplanationProps {
 }
 
 /**
- * Componente de explicación textual del análisis de IA
+ * Componente de resumen ejecutivo del análisis de IA
  * 
  * @param {ContractAnalysis} analysis - Análisis completo del contrato
  * @param {string} className - Clases CSS adicionales
@@ -58,46 +57,6 @@ export function AIExplanation({ analysis, className = "" }: AIExplanationProps) 
         <p className="text-foreground-muted leading-relaxed">
           {analysis.resumenEjecutivo}
         </p>
-      </div>
-
-      {/* Factores Principales */}
-      <div>
-        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 text-alert-medium" />
-          Factores Principales Identificados
-        </h4>
-        <ul className="space-y-2">
-          {analysis.factoresPrincipales.map((factor, index) => (
-            <li
-              key={index}
-              className="flex items-start gap-3 p-3 bg-background-light rounded-lg border border-border hover:border-accent-cyan/30 transition-colors"
-            >
-              <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan/10 text-accent-cyan rounded-full flex items-center justify-center text-xs font-bold">
-                {index + 1}
-              </span>
-              <span className="text-foreground-muted text-sm">{factor}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Recomendaciones */}
-      <div>
-        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Lightbulb className="w-4 h-4 text-alert-medium" />
-          Recomendaciones de Acción
-        </h4>
-        <ul className="space-y-2">
-          {analysis.recomendaciones.map((recomendacion, index) => (
-            <li
-              key={index}
-              className="flex items-start gap-3 p-3 bg-accent-violet/5 rounded-lg border border-accent-violet/20"
-            >
-              <span className="text-accent-violet mt-0.5">→</span>
-              <span className="text-foreground-muted text-sm">{recomendacion}</span>
-            </li>
-          ))}
-        </ul>
       </div>
 
       {/* Metadata del análisis */}
