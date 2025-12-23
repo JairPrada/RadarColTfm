@@ -17,7 +17,10 @@
 import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/ui/MainLayout";
 import { ContractTable, FilterDrawer } from "@/components/dashboard";
-import { AnimatedNumber, AnimatedProgressBar, TablePagination } from "@/components/ui";
+import {
+  AnimatedNumber,
+  TablePagination,
+} from "@/components/ui";
 import {
   fetchContracts,
   getDashboardStats,
@@ -38,6 +41,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Contract, ContractsApiResponse } from "@/types/contract";
+import Link from "next/link";
 
 /**
  * Página del Dashboard - Ahora como Client Component con animaciones y filtros
@@ -56,19 +60,20 @@ export default function DashboardPage() {
     pageSize: 10,
     totalItems: 0,
   });
-  const [paginatedResult, setPaginatedResult] = useState<PaginationResult<Contract> | null>(null);
+  const [paginatedResult, setPaginatedResult] =
+    useState<PaginationResult<Contract> | null>(null);
 
   useEffect(() => {
     async function loadContracts() {
       try {
         setLoading(true);
-        console.log('Iniciando carga de contratos con filtros:', filters);
+        console.log("Iniciando carga de contratos con filtros:", filters);
         const { contracts, apiResponse } = await fetchContracts(filters);
-        console.log('Contratos recibidos de API:', contracts.length);
-        
+        console.log("Contratos recibidos de API:", contracts.length);
+
         setAllContracts(contracts);
         setApiResponse(apiResponse);
-        
+
         // Aplicar paginación inmediatamente después de cargar
         const currentPageSize = pagination.pageSize;
         const initialPagination = {
@@ -77,17 +82,16 @@ export default function DashboardPage() {
           totalItems: contracts.length,
         };
         setPagination(initialPagination);
-        
+
         // Calcular resultado paginado inmediatamente
         const result = paginateData(contracts, 1, currentPageSize);
-        console.log('Paginación inicial aplicada:', {
+        console.log("Paginación inicial aplicada:", {
           totalContracts: contracts.length,
           pageSize: currentPageSize,
           totalPages: result.totalPages,
-          dataInPage: result.data.length
+          dataInPage: result.data.length,
         });
         setPaginatedResult(result);
-        
       } catch (error) {
         console.error("Error loading contracts:", error);
         setError(error instanceof Error ? error.message : "Error desconocido");
@@ -97,13 +101,13 @@ export default function DashboardPage() {
     }
 
     loadContracts();
-  }, [filters]); // Solo depende de filtros
+  }, [filters, pagination.pageSize]); // Depende de filtros y pageSize
 
   /**
    * Maneja cambios en los filtros (aplicados desde el drawer)
    */
   const handleApplyFilters = (newFilters: FilterTypes) => {
-    console.log('Aplicando filtros:', newFilters);
+    console.log("Aplicando filtros:", newFilters);
     setFilters(newFilters);
   };
 
@@ -111,25 +115,30 @@ export default function DashboardPage() {
    * Maneja cambios de página
    */
   const handlePageChange = (newPage: number) => {
-    console.log('Cambiando a página:', newPage, '| Total contratos:', allContracts.length);
-    
+    console.log(
+      "Cambiando a página:",
+      newPage,
+      "| Total contratos:",
+      allContracts.length
+    );
+
     if (allContracts.length === 0) {
-      console.warn('No hay contratos para paginar');
+      console.warn("No hay contratos para paginar");
       return;
     }
-    
+
     // Capturar pageSize actual ANTES de setState para evitar stale closure
     const currentPageSize = pagination.pageSize;
-    
-    setPagination(prev => ({ ...prev, page: newPage }));
-    
+
+    setPagination((prev) => ({ ...prev, page: newPage }));
+
     // Aplicar paginación con valores explícitos
     const result = paginateData(allContracts, newPage, currentPageSize);
-    console.log('Paginación aplicada:', { 
-      page: newPage, 
-      pageSize: currentPageSize, 
+    console.log("Paginación aplicada:", {
+      page: newPage,
+      pageSize: currentPageSize,
       totalPages: result.totalPages,
-      dataLength: result.data.length 
+      dataLength: result.data.length,
     });
     setPaginatedResult(result);
   };
@@ -138,27 +147,32 @@ export default function DashboardPage() {
    * Maneja cambios de tamaño de página
    */
   const handlePageSizeChange = (newPageSize: number) => {
-    console.log('Cambiando tamaño de página:', newPageSize, '| Total contratos:', allContracts.length);
-    
+    console.log(
+      "Cambiando tamaño de página:",
+      newPageSize,
+      "| Total contratos:",
+      allContracts.length
+    );
+
     if (allContracts.length === 0) {
-      console.warn('No hay contratos para paginar');
+      console.warn("No hay contratos para paginar");
       return;
     }
-    
+
     // Resetear a página 1 cuando cambia el tamaño
-    setPagination(prev => ({ 
-      ...prev, 
-      pageSize: newPageSize, 
-      page: 1
+    setPagination((prev) => ({
+      ...prev,
+      pageSize: newPageSize,
+      page: 1,
     }));
-    
+
     // Aplicar paginación con valores explícitos
     const result = paginateData(allContracts, 1, newPageSize);
-    console.log('Paginación aplicada:', { 
-      page: 1, 
-      pageSize: newPageSize, 
+    console.log("Paginación aplicada:", {
+      page: 1,
+      pageSize: newPageSize,
       totalPages: result.totalPages,
-      dataLength: result.data.length 
+      dataLength: result.data.length,
     });
     setPaginatedResult(result);
   };
@@ -202,7 +216,7 @@ export default function DashboardPage() {
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 100 }}
             >
-              <AlertTriangle className="w-16 h-16 text-alert-high mx-auto mb-4" />
+              <AlertTriangle className="w-16 h-16 mx-auto mb-4" />
             </motion.div>
 
             <h2 className="text-xl font-semibold text-foreground mb-3">
@@ -210,7 +224,8 @@ export default function DashboardPage() {
             </h2>
 
             <p className="text-sm text-foreground-muted mb-6 max-w-md mx-auto">
-              No se pudo conectar con el servidor. Por favor, intenta nuevamente.
+              No se pudo conectar con el servidor. Por favor, intenta
+              nuevamente.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -222,13 +237,13 @@ export default function DashboardPage() {
                 Reintentar
               </button>
 
-              <a
+              <Link
                 href="/"
                 className="flex items-center justify-center gap-2 px-4 py-2 text-sm bg-background-light border border-border text-foreground rounded-lg hover:bg-background-card transition-colors font-medium"
               >
                 <Home className="w-4 h-4" />
                 Ir al Inicio
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -240,11 +255,11 @@ export default function DashboardPage() {
   const currentContracts = paginatedResult?.data || [];
   const stats = getDashboardStats(allContracts, apiResponse);
 
-  console.log('Estado de renderizado:', {
+  console.log("Estado de renderizado:", {
     allContracts: allContracts.length,
     paginatedResult,
     currentContracts: currentContracts.length,
-    pagination
+    pagination,
   });
 
   return (
@@ -302,7 +317,7 @@ export default function DashboardPage() {
                 value={stats.totalContratosAnalizados}
                 duration={2}
                 delay={0.2}
-                className="text-2xl md:text-3xl font-bold font-mono text-accent-cyan"
+                className="text-2xl md:text-3xl font-bold font-mono"
               />
             </div>
             <div className="text-sm text-foreground-muted">
@@ -318,12 +333,14 @@ export default function DashboardPage() {
             transition={{ duration: 0.5, delay: 0.5 }}
           >
             <div className="flex items-center justify-between mb-4">
-              <AlertTriangle className="w-8 h-8 text-alert-high" />
+              <AlertTriangle
+                className="w-8 h-8  text-alert-high"
+              />
               <AnimatedNumber
                 value={stats.contratosAltoRiesgo}
                 duration={2}
                 delay={0.4}
-                className="text-2xl md:text-3xl font-bold font-mono text-alert-high"
+                className="text-2xl md:text-3xl font-bold font-mono"
               />
             </div>
             <div className="text-sm text-foreground-muted">
@@ -361,7 +378,7 @@ export default function DashboardPage() {
             transition={{ duration: 0.5, delay: 0.7 }}
           >
             <div className="flex items-center justify-between mb-4">
-              <Percent className="w-8 h-8 text-alert-high" />
+              <Percent className="w-8 h-8 text-accent-cyan" />
               <AnimatedNumber
                 value={
                   (stats.contratosAltoRiesgo / stats.totalContratosAnalizados) *
@@ -370,7 +387,7 @@ export default function DashboardPage() {
                 duration={2.5}
                 delay={0.8}
                 formatter={(val) => `${val.toFixed(1)}%`}
-                className="text-2xl md:text-3xl font-bold font-mono text-alert-high"
+                className="text-2xl md:text-3xl font-bold font-mono"
               />
             </div>
             <div className="text-sm text-foreground-muted">
