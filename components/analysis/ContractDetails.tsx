@@ -38,7 +38,10 @@ const formatCurrency = (amount: number): string => {
 /**
  * Formatea una fecha a formato largo español
  */
-const formatDate = (date: Date): string => {
+const formatDate = (date: Date | null): string => {
+  if (!date) {
+    return "Fecha no disponible";
+  }
   return new Intl.DateTimeFormat("es-CO", {
     year: "numeric",
     month: "long",
