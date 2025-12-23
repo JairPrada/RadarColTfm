@@ -49,10 +49,10 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
       notFound();
     }
 
-  // Obtener análisis del contrato
-  const analysis = getAnalysisById(id);
+  // Obtener análisis del contrato (ahora siempre devuelve un análisis personalizado)
+  const analysis = getAnalysisById(id, contract);
 
-  // Si no hay análisis disponible, mostrar mensaje
+  // Si no hay análisis disponible (caso excepcional), mostrar mensaje
   if (!analysis) {
     return (
       <MainLayout>
