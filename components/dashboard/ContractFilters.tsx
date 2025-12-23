@@ -127,11 +127,11 @@ export function ContractFilters({
 
       {/* Filtros Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Búsqueda por Nombre */}
+        {/* Búsqueda por Entidad */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground h-6">
             <FileText className="w-4 h-4 text-accent-cyan" />
-            Nombre del Contrato
+            Entidad Contratante
           </label>
           <input
             type="text"
@@ -146,7 +146,7 @@ export function ContractFilters({
 
         {/* ID del Contrato */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground h-6">
             <Hash className="w-4 h-4 text-accent-cyan" />
             ID del Contrato
           </label>
@@ -162,7 +162,7 @@ export function ContractFilters({
 
         {/* Fecha Desde */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground h-6">
             <Calendar className="w-4 h-4 text-accent-cyan" />
             Fecha Desde
           </label>
@@ -177,7 +177,7 @@ export function ContractFilters({
 
         {/* Fecha Hasta */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground h-6">
             <Calendar className="w-4 h-4 text-accent-cyan" />
             Fecha Hasta
           </label>
@@ -192,7 +192,7 @@ export function ContractFilters({
 
         {/* Valor Mínimo */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground h-6">
             <DollarSign className="w-4 h-4 text-accent-cyan" />
             Valor Mínimo
           </label>
@@ -208,7 +208,7 @@ export function ContractFilters({
 
         {/* Valor Máximo */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground h-6">
             <DollarSign className="w-4 h-4 text-accent-cyan" />
             Valor Máximo
           </label>

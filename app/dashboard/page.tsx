@@ -60,7 +60,10 @@ export default function DashboardPage() {
     async function loadContracts() {
       try {
         setLoading(true);
+        console.log('Iniciando carga de contratos con filtros:', filters);
         const { contracts, apiResponse } = await fetchContracts(filters, 100); // Obtener más datos para filtrar localmente
+        console.log('Contratos recibidos de API:', contracts.length, contracts);
+        console.log('API Response:', apiResponse);
         setAllContracts(contracts);
         setApiResponse(apiResponse);
         
@@ -70,6 +73,7 @@ export default function DashboardPage() {
           page: 1,
           totalItems: contracts.length,
         }));
+        console.log('Estado actualizado, contratos:', contracts.length);
       } catch (error) {
         console.error("Error loading contracts:", error);
         setError(error instanceof Error ? error.message : "Error desconocido");
@@ -85,7 +89,15 @@ export default function DashboardPage() {
   useEffect(() => {
     if (allContracts.length > 0) {
       const result = paginateData(allContracts, pagination.page, pagination.pageSize);
+      console.log('Paginación aplicada:', { 
+        totalContracts: allContracts.length, 
+        page: pagination.page, 
+        pageSize: pagination.pageSize,
+        resultData: result.data.length 
+      });
       setPaginatedResult(result);
+    } else {
+      console.log('No hay contratos para paginar');
     }
   }, [allContracts, pagination.page, pagination.pageSize]);
 
@@ -93,6 +105,7 @@ export default function DashboardPage() {
    * Maneja cambios en los filtros
    */
   const handleFiltersChange = (newFilters: FilterTypes) => {
+    console.log('Filtros cambiados:', newFilters);
     setFilters(newFilters);
   };
 
@@ -223,6 +236,13 @@ export default function DashboardPage() {
   // Variables derivadas
   const currentContracts = paginatedResult?.data || [];
   const stats = getDashboardStats(allContracts, apiResponse);
+
+  console.log('Estado de renderizado:', {
+    allContracts: allContracts.length,
+    paginatedResult,
+    currentContracts: currentContracts.length,
+    pagination
+  });
 
   return (
     <MainLayout>
