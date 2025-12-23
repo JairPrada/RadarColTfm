@@ -1,17 +1,17 @@
 /**
  * ContractTable - Tabla de contratos con animaciones y diseño responsive
- * 
+ *
  * Patrón de diseño: Presentation Component + Adapter Pattern
  * - Presentation: Componente enfocado en UI sin lógica de negocio
  * - Adapter: Transforma datos de Contract a formato visual
- * 
+ *
  * Características:
  * - Responsive: Cards en mobile, tabla en desktop
  * - Animaciones de entrada con Framer Motion
  * - Click en fila navega al detalle
  * - Formato de moneda y fechas localizados
  * - Accesibilidad completa
- * 
+ *
  * @component
  */
 
@@ -81,13 +81,13 @@ const rowVariants = {
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.2, ease: "easeOut" },
+    transition: { duration: 0.2 },
   },
 };
 
 /**
  * Tabla principal de contratos
- * 
+ *
  * @param {Contract[]} contracts - Lista de contratos a mostrar
  */
 export function ContractTable({ contracts }: ContractTableProps) {
@@ -162,10 +162,7 @@ export function ContractTable({ contracts }: ContractTableProps) {
                 className="border-b border-border hover:bg-accent-cyan/10 transition-all duration-200 cursor-pointer group"
               >
                 <td className="px-6 py-4">
-                  <Link
-                    href={`/analysis/${contract.id}`}
-                    className="block"
-                  >
+                  <Link href={`/analysis/${contract.id}`} className="block">
                     <div className="font-medium text-foreground group-hover:text-accent-cyan transition-colors font-mono">
                       {contract.id}
                     </div>
@@ -188,7 +185,9 @@ export function ContractTable({ contracts }: ContractTableProps) {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2 text-foreground-muted text-sm whitespace-nowrap">
                     <Calendar className="w-4 h-4 flex-shrink-0" />
-                    <span className="font-mono">{formatDate(contract.fecha)}</span>
+                    <span className="font-mono">
+                      {formatDate(contract.fecha)}
+                    </span>
                   </div>
                 </td>
                 <td className="px-6 py-4">
