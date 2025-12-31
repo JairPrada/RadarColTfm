@@ -143,3 +143,40 @@ export const mockContracts: Contract[] = [
     contratista: "SoftwareLic Colombia S.A.S.",
   },
 ];
+
+/**
+ * Función que simula la respuesta del API con datos mock
+ * Útil para desarrollo y fallback cuando el API no está disponible
+ */
+export function getMockContracts(): {
+  apiResponse: import('@/types/contract').ContractsApiResponse;
+  contracts: Contract[];
+} {
+  const mockApiResponse = {
+    metadata: {
+      fuenteDatos: "datos.gov.co (SECOP II - Mock Data para desarrollo)",
+      camposSimulados: ["probabilidadAnomalia", "nivelRiesgo"]
+    },
+    totalContratosAnalizados: mockContracts.length,
+    contratosAltoRiesgo: mockContracts.filter(c => c.nivelRiesgo === 'high').length,
+    montoTotalCOP: mockContracts.reduce((sum, contract) => sum + contract.monto, 0),
+    contratos: mockContracts.map(contract => ({
+      Contrato: {
+        Codigo: contract.id,
+        Descripcion: contract.nombreContrato
+      },
+      Entidad: contract.entidad,
+      Monto: contract.monto.toString(),
+      FechaInicio: contract.fecha?.toISOString() || null,
+      NivelRiesgo: contract.nivelRiesgo === 'high' ? 'Alto' as const : 
+                   contract.nivelRiesgo === 'medium' ? 'Medio' as const : 
+                   'Bajo' as const,
+      Anomalia: contract.probabilidadAnomalia
+    }))
+  };
+
+  return {
+    apiResponse: mockApiResponse,
+    contracts: mockContracts
+  };
+}

@@ -25,8 +25,9 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Calendar, DollarSign, FileText, Hash, RotateCcw } from "lucide-react";
+import { Search, Calendar, DollarSign, FileText, Hash, RotateCcw, Shield } from "lucide-react";
 import { ContractFilters as FilterTypes } from "@/lib/contractsService";
+import type { RiskLevel } from "@/types/contract";
 
 interface ContractFiltersProps {
   filters: FilterTypes;
@@ -103,6 +104,18 @@ export function ContractFilters({
     const numericValue = parseCurrencyValue(value);
     setValorMaximoDisplay(value ? formatCurrencyValue(numericValue) : "");
     updateFilter("valorMaximo", numericValue || undefined);
+  };
+
+  /**
+   * Maneja cambios en checkboxes de nivel de riesgo
+   */
+  const handleRiskLevelToggle = (level: "high" | "medium" | "low") => {
+    const currentLevels = filters.nivelesRiesgo || [];
+    const newLevels = currentLevels.includes(level)
+      ? currentLevels.filter(l => l !== level)
+      : [...currentLevels, level];
+    
+    updateFilter("nivelesRiesgo", newLevels.length > 0 ? newLevels : undefined);
   };
 
   return (
@@ -220,6 +233,52 @@ export function ContractFilters({
             disabled={isLoading}
             className="w-full px-3 py-2 border border-border rounded-lg bg-background-light text-foreground placeholder-foreground-muted focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan transition-colors disabled:opacity-50 font-mono"
           />
+        </div>
+
+        {/* Nivel de Riesgo */}
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground h-6">
+            <Shield className="w-4 h-4 text-accent-cyan" />
+            Nivel de Riesgo
+          </label>
+          <div className="flex flex-wrap gap-3 pt-1">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.nivelesRiesgo?.includes("high") || false}
+                onChange={() => handleRiskLevelToggle("high")}
+                disabled={isLoading}
+                className="w-4 h-4 rounded border-border text-alert-high focus:ring-alert-high focus:ring-2 disabled:opacity-50"
+              />
+              <span className="text-sm text-foreground-muted group-hover:text-foreground transition-colors">
+                Alto
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.nivelesRiesgo?.includes("medium") || false}
+                onChange={() => handleRiskLevelToggle("medium")}
+                disabled={isLoading}
+                className="w-4 h-4 rounded border-border text-alert-medium focus:ring-alert-medium focus:ring-2 disabled:opacity-50"
+              />
+              <span className="text-sm text-foreground-muted group-hover:text-foreground transition-colors">
+                Medio
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.nivelesRiesgo?.includes("low") || false}
+                onChange={() => handleRiskLevelToggle("low")}
+                disabled={isLoading}
+                className="w-4 h-4 rounded border-border text-alert-low focus:ring-alert-low focus:ring-2 disabled:opacity-50"
+              />
+              <span className="text-sm text-foreground-muted group-hover:text-foreground transition-colors">
+                Bajo
+              </span>
+            </label>
+          </div>
         </div>
       </div>
 

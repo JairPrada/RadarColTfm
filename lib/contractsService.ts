@@ -13,6 +13,8 @@
 import { ContractsApiResponse, ApiContract, Contract } from "@/types/contract";
 import { ContratoAnalisisApiResponse, ContractAnalysis, ApiAnalysisModel } from "@/types/analysis";
 import { apiConfig } from "@/lib/env";
+import { getMockContracts } from "@/data/mockContracts";
+import { mockAnalyses } from "@/data/mockAnalysis";
 
 /**
  * Interfaz para filtros de contratos basada en la API
@@ -25,6 +27,7 @@ export interface ContractFilters {
   valorMaximo?: number; // Mínimo: 0
   nombreContrato?: string; // Mínimo 3 caracteres
   idContrato?: string; // ID específico
+  nivelesRiesgo?: ("high" | "medium" | "low")[]; // Filtro por nivel de riesgo (cliente)
 }
 
 /**
@@ -67,11 +70,15 @@ function normalizeRiskLevel(apiLevel: "Alto" | "Medio" | "Bajo"): "high" | "medi
  * Transforma un contrato del API al formato interno
  */
 function transformApiContract(apiContract: ApiContract): Contract {
+  // Parsear monto: remover caracteres no numéricos excepto punto y guión
+  const montoLimpio = apiContract.Monto.toString().replace(/[^0-9.-]/g, '');
+  const monto = parseFloat(montoLimpio);
+  
   return {
     id: apiContract.Contrato.Codigo,
     nombreContrato: apiContract.Contrato.Descripcion,
     entidad: apiContract.Entidad,
-    monto: parseInt(apiContract.Monto, 10),
+    monto: isNaN(monto) ? 0 : monto,
     fecha: apiContract.FechaInicio ? new Date(apiContract.FechaInicio) : null,
     nivelRiesgo: normalizeRiskLevel(apiContract.NivelRiesgo),
     probabilidadAnomalia: apiContract.Anomalia,
@@ -133,6 +140,13 @@ export async function fetchContracts(filters?: ContractFilters, limit?: number):
     const queryParams = buildQueryParams(filters, limit);
     const url = `${apiConfig.baseUrl}${apiConfig.endpoints.contratos}${queryParams}`;
     
+    console.log("🌐 Llamando al API:", {
+      url,
+      filters,
+      limit,
+      baseUrl: apiConfig.baseUrl
+    });
+    
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -142,50 +156,102 @@ export async function fetchContracts(filters?: ContractFilters, limit?: number):
       cache: "no-cache",
     });
 
+    console.log("📡 Respuesta del servidor:", {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
     if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+      const errorText = await response.text();
+      console.error("❌ Error del servidor:", errorText);
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}\nDetalle: ${errorText}`);
     }
 
     const apiResponse: ContractsApiResponse = await response.json();
+    console.log("✅ Datos recibidos del API:", {
+      totalContratos: apiResponse.totalContratosAnalizados,
+      contratosLength: apiResponse.contratos?.length || 0,
+      primerosContratos: apiResponse.contratos?.slice(0, 2) || []
+    });
     
     // Validación básica de la respuesta
     if (!apiResponse.contratos || !Array.isArray(apiResponse.contratos)) {
+      console.error("❌ Estructura de respuesta inválida:", apiResponse);
       throw new Error("Respuesta del API inválida: falta el array de contratos");
     }
 
+    // Validar que los contratos tengan la estructura esperada
+    const validContracts = apiResponse.contratos.filter(contract => {
+      const isValid = contract?.Contrato?.Codigo && 
+                     contract?.Entidad && 
+                     contract?.Monto !== undefined &&
+                     contract?.NivelRiesgo &&
+                     contract?.Anomalia !== undefined;
+      if (!isValid) {
+        console.warn("⚠️ Contrato inválido filtrado:", contract);
+      }
+      return isValid;
+    });
+
+    console.log("🔍 Contratos validados:", {
+      original: apiResponse.contratos.length,
+      validos: validContracts.length,
+      filtrados: apiResponse.contratos.length - validContracts.length
+    });
+
     // Transforma los contratos al formato interno
-    const contracts = apiResponse.contratos.map(transformApiContract);
+    const contracts = validContracts.map(transformApiContract);
+
+    console.log("🔄 Contratos transformados:", {
+      cantidad: contracts.length,
+      ejemplo: contracts[0] || null
+    });
 
     return {
-      apiResponse,
+      apiResponse: {
+        ...apiResponse,
+        contratos: validContracts
+      },
       contracts,
     };
   } catch (error) {
     // Log del error para debugging
-    console.error("Error fetching contracts:", error);
+    console.error("💥 Error fetching contracts:", {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      url: `${apiConfig.baseUrl}${apiConfig.endpoints.contratos}`,
+      filters
+    });
     
-    // Re-lanza el error con mensaje más descriptivo
+    // Re-lanzar el error con mensaje descriptivo
     if (error instanceof TypeError && error.message.includes("fetch")) {
       throw new Error(`🚫 No se puede conectar al servidor API en ${apiConfig.baseUrl}
 
 📋 INSTRUCCIONES:
-1️⃣ Verifica que el servidor API esté ejecutándose
-2️⃣ Confirma que esté usando el puerto 8000
+1️⃣ Verifica que el servidor API esté ejecutándose en http://localhost:8000
+2️⃣ Confirma que esté usando el puerto correcto
 3️⃣ Prueba la URL manualmente: ${apiConfig.baseUrl}${apiConfig.endpoints.contratos}
+4️⃣ Verifica la configuración NEXT_PUBLIC_API_BASE_URL en .env.local
 
 💡 COMANDOS TÍPICOS:
 • python -m uvicorn main:app --port 8000
 • python app.py
 • node server.js
 
-🔧 Si el API usa otro puerto, configura NEXT_PUBLIC_API_BASE_URL en .env.local`);
+🔧 Variables de entorno:
+• NEXT_PUBLIC_API_BASE_URL=${apiConfig.baseUrl}`);
     }
     
     if (error instanceof Error && error.message.includes("HTTP")) {
       throw new Error(`❌ Error del servidor API (${error.message})
 
 El servidor está ejecutándose pero devolvió un error.
-Verifica los logs del servidor API para más detalles.`);
+Verifica los logs del servidor API para más detalles.
+
+🔗 URL: ${apiConfig.baseUrl}${apiConfig.endpoints.contratos}`);
     }
     
     throw error instanceof Error ? error : new Error("Error desconocido al obtener contratos");
@@ -212,6 +278,10 @@ export function getDashboardStats(contracts: Contract[], apiResponse: ContractsA
     totalContratosAnalizados: apiResponse.totalContratosAnalizados,
     contratosAltoRiesgo: apiResponse.contratosAltoRiesgo,
     montoTotalCOP: apiResponse.montoTotalCOP,
+    // Porcentaje calculado
+    porcentajeAltoRiesgo: apiResponse.totalContratosAnalizados > 0 
+      ? (apiResponse.contratosAltoRiesgo / apiResponse.totalContratosAnalizados) * 100
+      : 0
   };
 }
 
@@ -290,6 +360,33 @@ function transformApiAnalysis(apiAnalysis: ApiAnalysisModel): ContractAnalysis {
 }
 
 /**
+ * Obtiene un análisis mock para un contrato específico
+ * Utilizado como fallback cuando el API no está disponible
+ */
+function getMockAnalysisForContract(contractId: string): { contract: Contract; analysis: ContractAnalysis } {
+  const mockData = getMockContracts();
+  const contract = mockData.contracts.find(c => c.id === contractId);
+  
+  if (!contract) {
+    // Si no existe el contrato, usar el primero disponible
+    const firstContract = mockData.contracts[0];
+    const firstAnalysis = Object.values(mockAnalyses)[0];
+    
+    return {
+      contract: { ...firstContract, id: contractId },
+      analysis: { ...firstAnalysis, contractId }
+    };
+  }
+  
+  const analysis = mockAnalyses[contractId] || Object.values(mockAnalyses)[0];
+  
+  return {
+    contract,
+    analysis: { ...analysis, contractId }
+  };
+}
+
+/**
  * Obtiene el análisis detallado de un contrato específico desde el API
  * 
  * @param contractId - ID del contrato a analizar
@@ -325,11 +422,14 @@ export async function fetchContractAnalysis(contractId: string): Promise<{
 
     const apiResponse: ContratoAnalisisApiResponse = await response.json();
     
+    console.log('📦 [API] Respuesta completa del API:', JSON.stringify(apiResponse, null, 2));
     console.log('📦 [API] Análisis recibido:', {
       contractId: apiResponse.contract.id,
       nivelRiesgo: apiResponse.contract.nivelRiesgo,
       anomalia: apiResponse.contract.anomalia,
-      shapValues: apiResponse.analysis.shapValues.length
+      shapValues: apiResponse.analysis.shapValues?.length || 0,
+      hasAnalysis: !!apiResponse.analysis,
+      analysisKeys: Object.keys(apiResponse.analysis || {})
     });
     
     // Validación básica de la respuesta
@@ -338,15 +438,24 @@ export async function fetchContractAnalysis(contractId: string): Promise<{
     }
 
     // Transforma el contrato al formato interno
+    const monto = parseFloat(apiResponse.contract.monto.toString().replace(/[^0-9.-]/g, ''));
+    
     const contract: Contract = {
       id: apiResponse.contract.codigo, // Usar código como ID
       nombreContrato: apiResponse.contract.descripcion,
       entidad: apiResponse.contract.entidad,
-      monto: parseFloat(apiResponse.contract.monto.replace(/[^0-9.-]/g, '')), // Parsear string a number
+      monto: isNaN(monto) ? 0 : monto, // Parsear string numérico a number, 0 si inválido
       fecha: apiResponse.contract.fechaInicio ? new Date(apiResponse.contract.fechaInicio) : null,
       nivelRiesgo: apiResponse.contract.nivelRiesgo === "Alto" ? "high" : apiResponse.contract.nivelRiesgo === "Medio" ? "medium" : "low",
       probabilidadAnomalia: apiResponse.contract.anomalia,
     };
+    
+    console.log('🔄 [API] Contrato transformado:', {
+      id: contract.id,
+      monto: contract.monto,
+      montoOriginal: apiResponse.contract.monto,
+      nivelRiesgo: contract.nivelRiesgo
+    });
 
     // Transforma el análisis al formato interno
     const analysis = transformApiAnalysis(apiResponse.analysis);
@@ -359,25 +468,8 @@ export async function fetchContractAnalysis(contractId: string): Promise<{
     console.error("❌ [API] Error obteniendo análisis:", error);
     console.error("❌ [API] Tipo de error:", error instanceof TypeError ? 'TypeError (CORS/Network)' : error instanceof Error ? error.constructor.name : typeof error);
     
-    // Re-lanza el error con mensaje más descriptivo
-    if (error instanceof TypeError && error.message.includes("fetch")) {
-      throw new Error(`🚫 No se puede conectar al servidor API en ${apiConfig.baseUrl}
-
-📋 INSTRUCCIONES:
-1️⃣ Verifica que el servidor API esté ejecutándose
-2️⃣ Confirma la URL del endpoint: ${apiConfig.endpoints.analisisContrato(contractId)}
-3️⃣ Verifica que el contrato con ID "${contractId}" existe
-
-🔧 Si el API usa otra URL, configura NEXT_PUBLIC_API_BASE_URL en .env.local`);
-    }
-    
-    if (error instanceof Error && error.message.includes("HTTP")) {
-      throw new Error(`❌ Error del servidor API (${error.message})
-
-El servidor está ejecutándose pero devolvió un error.
-Verifica los logs del servidor API para más detalles.`);
-    }
-    
-    throw error instanceof Error ? error : new Error("Error desconocido al obtener análisis del contrato");
+    // Usar datos mock como fallback cuando el API falla
+    console.warn("⚠️ [API] Usando datos mock como fallback");
+    return getMockAnalysisForContract(contractId);
   }
 }

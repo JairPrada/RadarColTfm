@@ -9,6 +9,6 @@
  * ```
  */
 
-export { ContractTable } from "./ContractTable";
+export { ContractTable, type SortField, type SortDirection } from "./ContractTable";
 export { ContractFilters } from "./ContractFilters";
 export { FilterDrawer } from "./FilterDrawer";

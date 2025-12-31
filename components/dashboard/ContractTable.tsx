@@ -18,13 +18,19 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calendar, Building2, DollarSign } from "lucide-react";
+import { Calendar, Building2, DollarSign, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { Contract } from "@/types/contract";
 import { Badge } from "@/components/ui/Badge";
 
+export type SortField = 'id' | 'entidad' | 'monto' | 'fecha' | 'nivelRiesgo' | 'probabilidadAnomalia';
+export type SortDirection = 'asc' | 'desc';
+
 interface ContractTableProps {
   contracts: Contract[];
+  sortField?: SortField;
+  sortDirection?: SortDirection;
+  onSort?: (field: SortField) => void;
 }
 
 /**
@@ -62,6 +68,51 @@ const riskLevelText = {
 };
 
 /**
+ * Componente para encabezados de tabla ordenables
+ */
+interface SortableHeaderProps {
+  field: SortField;
+  label: string;
+  currentSortField?: SortField;
+  currentSortDirection?: SortDirection;
+  onSort?: (field: SortField) => void;
+  align?: 'left' | 'right';
+}
+
+function SortableHeader({
+  field,
+  label,
+  currentSortField,
+  currentSortDirection,
+  onSort,
+  align = 'left',
+}: SortableHeaderProps) {
+  const isActive = currentSortField === field;
+  
+  return (
+    <th
+      className={`px-6 py-4 text-${align} text-sm font-semibold text-foreground cursor-pointer hover:bg-accent-cyan/5 transition-colors select-none group`}
+      onClick={() => onSort?.(field)}
+    >
+      <div className={`flex items-center gap-2 ${align === 'right' ? 'justify-end' : ''}`}>
+        <span>{label}</span>
+        <div className="w-4 h-4 flex items-center justify-center">
+          {!isActive && (
+            <ArrowUpDown className="w-4 h-4 text-foreground-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
+          {isActive && currentSortDirection === 'asc' && (
+            <ArrowUp className="w-4 h-4 text-accent-cyan" />
+          )}
+          {isActive && currentSortDirection === 'desc' && (
+            <ArrowDown className="w-4 h-4 text-accent-cyan" />
+          )}
+        </div>
+      </div>
+    </th>
+  );
+}
+
+/**
  * Variantes de animación para la tabla
  * Optimizadas para cambio rápido de página
  */
@@ -89,8 +140,11 @@ const rowVariants = {
  * Tabla principal de contratos
  *
  * @param {Contract[]} contracts - Lista de contratos a mostrar
+ * @param {SortField} sortField - Campo actual de ordenamiento
+ * @param {SortDirection} sortDirection - Dirección del ordenamiento
+ * @param {Function} onSort - Callback para cambiar ordenamiento
  */
-export function ContractTable({ contracts }: ContractTableProps) {
+export function ContractTable({ contracts, sortField, sortDirection, onSort }: ContractTableProps) {
   // Caso: Sin contratos
   if (contracts.length === 0) {
     return (
@@ -134,24 +188,49 @@ export function ContractTable({ contracts }: ContractTableProps) {
         >
           <thead>
             <tr className="border-b border-border bg-background-light">
-              <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                Contrato
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                Entidad
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                Monto
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                Fecha
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                Nivel de Riesgo
-              </th>
-              <th className="px-6 py-4 text-right text-sm font-semibold text-foreground">
-                Anomalía
-              </th>
+              <SortableHeader
+                field="id"
+                label="Contrato"
+                currentSortField={sortField}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="entidad"
+                label="Entidad"
+                currentSortField={sortField}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="monto"
+                label="Monto"
+                currentSortField={sortField}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="fecha"
+                label="Fecha"
+                currentSortField={sortField}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="nivelRiesgo"
+                label="Nivel de Riesgo"
+                currentSortField={sortField}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="probabilidadAnomalia"
+                label="Anomalía"
+                currentSortField={sortField}
+                currentSortDirection={sortDirection}
+                onSort={onSort}
+                align="right"
+              />
             </tr>
           </thead>
           <tbody>

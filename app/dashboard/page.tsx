@@ -16,7 +16,7 @@
 
 import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/ui/MainLayout";
-import { ContractTable, FilterDrawer } from "@/components/dashboard";
+import { ContractTable, FilterDrawer, type SortField, type SortDirection } from "@/components/dashboard";
 import {
   AnimatedNumber,
   TablePagination,
@@ -29,6 +29,12 @@ import {
   type ContractFilters as FilterTypes,
   type PaginationResult,
 } from "@/lib/contractsService";
+import {
+  runDashboardDiagnostics,
+  logDashboardState,
+  validateApiResponse
+} from "@/utils/debugDashboard";
+import { DebugPanel } from "@/components/debug/DebugPanel";
 import {
   Activity,
   TrendingUp,
@@ -62,16 +68,129 @@ export default function DashboardPage() {
   });
   const [paginatedResult, setPaginatedResult] =
     useState<PaginationResult<Contract> | null>(null);
+  const [sortField, setSortField] = useState<SortField | undefined>(undefined);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  /**
+   * Ordena los contratos según el campo y dirección especificados
+   */
+  const sortContracts = (contracts: Contract[], field?: SortField, direction: SortDirection = 'asc'): Contract[] => {
+    if (!field) return contracts;
+
+    return [...contracts].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (field) {
+        case 'id':
+          aValue = a.id;
+          bValue = b.id;
+          break;
+        case 'entidad':
+          aValue = a.entidad;
+          bValue = b.entidad;
+          break;
+        case 'monto':
+          aValue = a.monto;
+          bValue = b.monto;
+          break;
+        case 'fecha':
+          aValue = a.fecha ? a.fecha.getTime() : 0;
+          bValue = b.fecha ? b.fecha.getTime() : 0;
+          break;
+        case 'nivelRiesgo':
+          // Ordenar por prioridad: high > medium > low
+          const riskOrder = { high: 3, medium: 2, low: 1 };
+          aValue = riskOrder[a.nivelRiesgo];
+          bValue = riskOrder[b.nivelRiesgo];
+          break;
+        case 'probabilidadAnomalia':
+          aValue = a.probabilidadAnomalia;
+          bValue = b.probabilidadAnomalia;
+          break;
+        default:
+          return 0;
+      }
+
+      // Manejar valores null/undefined
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return direction === 'asc' ? 1 : -1;
+      if (bValue == null) return direction === 'asc' ? -1 : 1;
+
+      // Comparación según el tipo
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const result = aValue.localeCompare(bValue, 'es');
+        return direction === 'asc' ? result : -result;
+      }
+
+      // Comparación numérica
+      const result = aValue - bValue;
+      return direction === 'asc' ? result : -result;
+    });
+  };
+
+  /**
+   * Maneja cambios en el ordenamiento
+   */
+  const handleSort = (field: SortField) => {
+    console.log('🔄 Cambiando ordenamiento:', { field, currentField: sortField, currentDirection: sortDirection });
+    
+    if (sortField === field) {
+      // Cambiar dirección si es el mismo campo
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Nuevo campo, empezar con ascendente
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   useEffect(() => {
     async function loadContracts() {
       try {
         setLoading(true);
-        console.log("Iniciando carga de contratos con filtros:", filters);
+        setError(null);
+        
+        console.log("🚀 Iniciando carga de contratos con filtros:", filters);
+        
+        // Ejecutar diagnósticos iniciales
+        await runDashboardDiagnostics();
+        
         const { contracts, apiResponse } = await fetchContracts(filters);
-        console.log("Contratos recibidos de API:", contracts.length);
+        
+        // Validar respuesta del API
+        const validation = validateApiResponse(apiResponse);
+        if (!validation.isValid) {
+          console.warn("⚠️ Problemas con la respuesta del API:", validation.issues);
+        }
+        
+        console.log("✅ Contratos recibidos de API:", {
+          total: contracts.length,
+          primerContrato: contracts[0],
+          distribucionRiesgo: {
+            alto: contracts.filter(c => c.nivelRiesgo === 'high').length,
+            medio: contracts.filter(c => c.nivelRiesgo === 'medium').length,
+            bajo: contracts.filter(c => c.nivelRiesgo === 'low').length
+          }
+        });
 
-        setAllContracts(contracts);
+        // Filtrar por nivel de riesgo (lado del cliente)
+        let filteredContracts = contracts;
+        if (filters.nivelesRiesgo && filters.nivelesRiesgo.length > 0) {
+          filteredContracts = contracts.filter(contract => 
+            filters.nivelesRiesgo!.includes(contract.nivelRiesgo)
+          );
+          console.log("🔍 Contratos filtrados por nivel de riesgo:", {
+            original: contracts.length,
+            filtrado: filteredContracts.length,
+            filtros: filters.nivelesRiesgo
+          });
+        }
+
+        // Aplicar ordenamiento antes de paginar
+        const sortedContracts = sortContracts(filteredContracts, sortField, sortDirection);
+
+        setAllContracts(sortedContracts);
         setApiResponse(apiResponse);
 
         // Aplicar paginación inmediatamente después de cargar
@@ -79,29 +198,44 @@ export default function DashboardPage() {
         const initialPagination = {
           page: 1,
           pageSize: currentPageSize,
-          totalItems: contracts.length,
+          totalItems: sortedContracts.length,
         };
         setPagination(initialPagination);
 
         // Calcular resultado paginado inmediatamente
-        const result = paginateData(contracts, 1, currentPageSize);
-        console.log("Paginación inicial aplicada:", {
-          totalContracts: contracts.length,
+        const result = paginateData(sortedContracts, 1, currentPageSize);
+        console.log("📄 Paginación inicial aplicada:", {
+          totalContratos: sortedContracts.length,
           pageSize: currentPageSize,
           totalPages: result.totalPages,
           dataInPage: result.data.length,
         });
         setPaginatedResult(result);
+        
+        // Ejecutar diagnósticos finales con datos cargados
+        await runDashboardDiagnostics(sortedContracts);
+        
       } catch (error) {
-        console.error("Error loading contracts:", error);
-        setError(error instanceof Error ? error.message : "Error desconocido");
+        console.error("💥 Error loading contracts:", error);
+        const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+        setError(errorMessage);
+        
+        // Log del estado para debugging
+        logDashboardState({
+          loading: false,
+          error: errorMessage,
+          contracts: [],
+          apiResponse: null,
+          filters,
+          pagination
+        });
       } finally {
         setLoading(false);
       }
     }
 
     loadContracts();
-  }, [filters, pagination.pageSize]); // Depende de filtros y pageSize
+  }, [filters, pagination.pageSize, sortField, sortDirection]); // Depende de filtros, pageSize y ordenamiento
 
   /**
    * Maneja cambios en los filtros (aplicados desde el drawer)
@@ -253,13 +387,25 @@ export default function DashboardPage() {
 
   // Variables derivadas
   const currentContracts = paginatedResult?.data || [];
-  const stats = getDashboardStats(allContracts, apiResponse);
+  const stats = apiResponse ? getDashboardStats(allContracts, apiResponse) : null;
 
-  console.log("Estado de renderizado:", {
+  // Log simple del estado actual para debugging (sin useEffect para evitar problemas de hooks)
+  console.log("🎯 Estado de renderizado:", {
+    loading,
+    error: !!error,
     allContracts: allContracts.length,
-    paginatedResult,
+    paginatedResult: paginatedResult ? {
+      page: paginatedResult.pagination.page,
+      pageSize: paginatedResult.pagination.pageSize,
+      totalItems: paginatedResult.pagination.totalItems,
+      dataLength: paginatedResult.data.length
+    } : null,
     currentContracts: currentContracts.length,
-    pagination,
+    stats: stats ? {
+      total: stats.totalContratosAnalizados,
+      altoRiesgo: stats.contratosAltoRiesgo,
+      porcentajeRiesgo: stats.porcentajeAltoRiesgo
+    } : null
   });
 
   return (
@@ -286,12 +432,12 @@ export default function DashboardPage() {
           >
             Fuente:{" "}
             <span className="text-accent-cyan font-medium">
-              {apiResponse.metadata.fuenteDatos}
+              {apiResponse?.metadata.fuenteDatos || 'Cargando...'}
             </span>
-            {apiResponse.metadata.camposSimulados.length > 0 && (
+            {(apiResponse?.metadata.camposSimulados?.length || 0) > 0 && (
               <span className="ml-4">
                 • Campos simulados:{" "}
-                {apiResponse.metadata.camposSimulados.join(", ")}
+                {apiResponse?.metadata.camposSimulados?.join(", ")}
               </span>
             )}
           </motion.div>
@@ -314,7 +460,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <Activity className="w-8 h-8 text-accent-cyan" />
               <AnimatedNumber
-                value={stats.totalContratosAnalizados}
+                value={stats?.totalContratosAnalizados || 0}
                 duration={2}
                 delay={0.2}
                 className="text-2xl md:text-3xl font-bold font-mono"
@@ -337,7 +483,7 @@ export default function DashboardPage() {
                 className="w-8 h-8  text-alert-high"
               />
               <AnimatedNumber
-                value={stats.contratosAltoRiesgo}
+                value={stats?.contratosAltoRiesgo || 0}
                 duration={2}
                 delay={0.4}
                 className="text-2xl md:text-3xl font-bold font-mono"
@@ -358,7 +504,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <TrendingUp className="w-8 h-8 text-accent-violet" />
               <AnimatedNumber
-                value={stats.montoTotalCOP}
+                value={stats?.montoTotalCOP || 0}
                 duration={2.5}
                 delay={0.6}
                 formatter={(val) => formatLargeAmount(val)}
@@ -381,8 +527,9 @@ export default function DashboardPage() {
               <Percent className="w-8 h-8 text-accent-cyan" />
               <AnimatedNumber
                 value={
-                  (stats.contratosAltoRiesgo / stats.totalContratosAnalizados) *
-                  100
+                  stats ? 
+                    (stats.contratosAltoRiesgo / stats.totalContratosAnalizados) * 100 
+                    : 0
                 }
                 duration={2.5}
                 delay={0.8}
@@ -411,7 +558,7 @@ export default function DashboardPage() {
                 />{" "}
                 contratos de{" "}
                 <AnimatedNumber
-                  value={stats.totalContratosAnalizados}
+                  value={stats?.totalContratosAnalizados || 0}
                   duration={2}
                   delay={1.2}
                   className="font-mono font-bold text-accent-cyan"
@@ -421,7 +568,7 @@ export default function DashboardPage() {
               <span className="text-sm text-foreground-muted">
                 • Anomalía promedio:{" "}
                 <AnimatedNumber
-                  value={stats.avgAnomaly}
+                  value={stats?.avgAnomaly || 0}
                   duration={1.5}
                   delay={1.4}
                   formatter={(val) => `${val}%`}
@@ -461,7 +608,12 @@ export default function DashboardPage() {
           transition={{ duration: 0.3, ease: "easeOut" }}
           key={`table-${pagination.page}`}
         >
-          <ContractTable contracts={currentContracts} />
+          <ContractTable 
+            contracts={currentContracts} 
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+          />
         </motion.div>
 
         {/* Paginación */}
@@ -492,6 +644,16 @@ export default function DashboardPage() {
           activeFiltersCount={activeFiltersCount}
         />
       </div>
+      
+      {/* Debug Panel - Solo en desarrollo */}
+      <DebugPanel
+        contracts={allContracts}
+        apiResponse={apiResponse}
+        loading={loading}
+        error={error}
+        filters={filters}
+        pagination={pagination}
+      />
     </MainLayout>
   );
 }
